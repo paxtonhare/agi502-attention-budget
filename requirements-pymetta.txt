@@ -1,0 +1,4 @@
+# Separate CPython 3.12 environment, Linux x86-64.
+PyMeTTa==0.9.4
+annotated-types==0.8.0
+docstring-parser==0.18.0

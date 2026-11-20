@@ -1,0 +1,3 @@
+Hyperon 0.2.10, Python 3.11.2
+chainer.metta: 6 assertEqual passed (6 unit results)
+economy.metta: 10 assertEqual passed (10 unit results)

@@ -1,0 +1,2 @@
+Hyperon 0.2.10, Python 3.11.2
+replay.metta: 288 assertEqual passed (4798 unit results)

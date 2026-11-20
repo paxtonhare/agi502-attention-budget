@@ -1,0 +1,80 @@
+Upstream investigation — AGI 502 attention budget — 2026-11-20 UTC
+
+Provenance
+==========
+Public default branches cloned with git --depth=1 into a scratch directory outside the project; code and test results below refer to these exact commits, not moving main links. These are independently sampled heads, not a verified compatible pair.
+- iCog-Labs-Dev/metta-attention, main, d3a3c0e369df052e31992fcdbafdec4a42d1a3ad (2026-11-02T09:33:47Z, merge #248 from fluid-main): https://github.com/iCog-Labs-Dev/metta-attention/commit/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad
+- trueagi-io/CAIRN, main, 36fd7f1b9435c2030acb16ed6de0744379ca2b72 (2026-10-29T17:18:26Z, “Linkage pricing”): https://github.com/trueagi-io/CAIRN/commit/36fd7f1b9435c2030acb16ed6de0744379ca2b72
+
+iCog: what the code does
+=======================
+- Attention value is (STI, LTI, VLTI), distinct from truth value (STV). The bank computes wage as base × (1 + clamp((funds − target)/buffer, −1, 1)); stimulate multiplies STI/LTI wages by stimulus and calls setAv. setAv stores the AV and importance bin, preserves existing STV, credits old-minus-new STI/LTI to the respective funds, and updates AF. AF updates existing entries, fills capacity, or evicts a minimum-STI entry if the newcomer has strictly higher STI. Maximum AF size is a capacity, not the inference-step budget.
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/attention-bank/bank/attention-bank.metta#L11-L94
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/attention-bank/attention-value/getter-and-setter.metta#L16-L82
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/attention-bank/bank/attentional-focus/attentional-focus.metta#L4-L43
+- The library imports bank, rent, AF/WA diffusion, Hebbian creation/updating and forgetting modules. The generic runner hyperposes the Hebbian, diffusion and rent calls with forgetting commented out. AF diffusion selects sources by STI (TOPK fraction of AF) and trades along incident and Hebbian connections. AF rent is wall-clock gated and caps deductions at current holdings; use a deterministic tick if adapting this for a paired experiment.
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/lib.metta#L19-L45
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/attention/runner-Def.metta#L1-L14
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/attention/ImportanceDiffusionAgent/AFImportanceDiffusionAgent/AFImportanceDiffusionAgent.metta#L69-L113
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/attention/RentCollectionAgent/AFRentCollectionAgent/AFRentCollectionAgent.metta#L20-L97
+
+CAIRN: baseline design from code
+================================
+1. Unpriced steering (the direct comparison for budgeted reasoning). All three arms use the same query, same PLN API and same inference-step argument B (default 10; driver also accepts budget grids and a seed, default 0). The arm changes the premise set, not B:
+   - weighted: all stamped premises, with their existing truth values; no AF gate. Despite the name, the steering code does not STI-rank or truncate this premise list. This is a full-KB-at-equal-B baseline, not an unbounded proof run or a static top-k harness rule.
+   - influenced: pass a table only if at least one leg belongs to BOTH query objects Q and real focus F: legs(table) ∩ Q ∩ F ≠ ∅. Separate legs matching Q and F do not suffice. This is a hard membership filter, not soft ranking within PLN. In fixed scenarios, CAIRN builds incident edges from table legs, registers atoms, stimulates scenario seed atoms, runs configured ECAN cycles, and takes positive-STI AF as F. CAIRN's cycle is explicitly sequenced (AF rent/diffusion, WA rent/diffusion, Hebbian creation/update, forgetting), not iCog's generic hyperposed runner. Example fixtures: Roman A→D with four premises and a WordNet slice Ant→Insect with eight.
+   - distracted: replace F with seeded random S from the scenario pool (without replacement over pool entries; size min(|F|, pool size)); apply the exact same Q-and-focus gate. The regular sampler does not exclude query atoms or force S disjoint from F. Matching focus size does not match admitted premise counts; if Q ∩ S is empty the arm can have no premises, in which case the wrapper returns an empty answer without calling PLN.
+   Outputs include solved, confidence (0 on empty answer), answer/evidence, admitted premise count and wall time per arm, plus focus, seed and query–AF overlap. The timer excludes premise filtering. CAIRN 'solved' means the answer has the expected truth-value/evidence pair shape, not a separate ground-truth check.
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/steering.metta#L1-L63
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/core.metta#L6-L60
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/pln_api.metta#L1-L19
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/cognitive_synergy_io.py#L87-L99
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/pre.metta#L18-L35
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/ecan.metta#L17-L34
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/run_bridge.py#L58-L87
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/scenarios/roman_map.metta#L1-L23
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/scenarios/slice_map.metta#L1-L33
+
+2. Snapshot and feedback variants. B2 uses end-of-run snapshots; B3 uses mid-run CIP snapshots, with offline cap × B replay available. Freeze-F does not rerun ECAN; its normal scenario builder takes highest-STI saved AF entries up to the cap and can force query atoms into focus. Re-dynamics seeds and cycles again in a reconstructed graph. Snapshot-generated node STV priors also derive from STI and are shared across steering arms, so weighted is not necessarily independent of upstream ECAN on snapshot inputs. Standalone feedback uses an influenced proof's evidence stamps to identify premise endpoint atoms, zeros each AV then stimulates it, runs one ECAN cycle, and reports before/after STI and AF. Live B4 adds the wage at the CIP probe hook only on a solved influenced query; it prefers proof stamps mapped back to original atoms, with query/attention fallbacks. Open-loop live probes do not apply those wages. Neither freeze-F nor the weighted arm alone is a matched, live no-feedback ablation.
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/README.md#L64-L93
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/pre_freeze.metta#L15-L29
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/scenario_from_snapshot.py#L53-L59
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/scenario_from_snapshot.py#L153-L251
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/feedback.metta#L1-L54
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/mve_pln_probe.py#L47-L77
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/cip_probe.py#L398-L423
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/coupled.py#L292-L365
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/tools/cip_probe_hooks.metta#L28-L53
+
+3. Optional linkage pricing at this CAIRN revision is a separate protocol, not the three unpriced arms above. The live influenced account uses AF candidates, query atoms first, then descending STI. It buys new atoms at nonnegative STI, retains owned atoms without paying again (subject to release mode), and carries state between periods. An open priced pass can admit an unaffordable tail for free up to k, whereas closed mode stops at the fund bound, so toggling closed-loop in this path changes more than feedback. Offline priced controls start each period from the live opening credit without carrying their own balances: weighted orders the importable bank with query priority, and distracted draws up to the live held count with seed 0 excluding query objects. Do not confuse these with ordinary steering's full KB and full-pool random arm.
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/cip_probe.py#L293-L354
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/link_fund.py#L70-L87
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/link_fund.py#L140-L209
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/mve_pln_probe.py#L114-L130
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/link_arms.py#L1-L6
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/link_arms.py#L111-L145
+
+4. Separate structural baseline: mve records CIP 0, then stimulates the insect corpus and runs/measures the agents at batch boundaries (25 inputs or end); no PLN bridge. assignment switches corpus (insects-100 then poisons-50), reads mean effectiveness from mve and benchmark CSVs, and reports (benchmark − mve)/abs(mve), returning 0 for zero baseline. It is a corpus comparison, not a same-input no-feedback or random reasoning control.
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/mve.metta#L156-L206
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/assignment.metta#L73-L101
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/assignment.metta#L278-L290
+   https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/evaluation/benchmark.metta#L13-L28
+
+Implication for this project: keep tasks, premise bank and base truth values, reasoner, and B fixed across arms; report actual admitted premise counts alongside AF size and outcomes. Define the static harness rule explicitly (CAIRN's full-KB weighted arm is not that rule). For a matched no-feedback control, use the same ECAN initialization, inputs, dynamics and budget, suppress only proof-contingent updates, and let both trajectories continue. If equal premise count is needed to separate ranking quality from pruning, match it directly rather than assuming equal |F| implies it. Predeclare seeds and any use of query objects in admission. These are recommendations, not upstream results.
+
+Executed checks (upstream clones only)
+======================================
+Environment: Linux x86_64, Python 3.11.2. Commands below were run from the named upstream root; $VENV is an isolated scratch venv made with python3 -m venv. Installed wheel deps igraph==1.0.0, numpy==2.3.3, matplotlib==3.10.6, pillow==11.3.0 from iCog's requirments.txt pins, and scipy==1.16.3 (local pin: fluid graph imports SciPy but it is not declared in that file). Initial system-Python Synapse attempt failed on missing igraph; initial fluid run before adding SciPy failed on missing scipy. Final results:
+- iCog native: `bash scripts/run-tests.sh` → exit 1 before discovery/tests: “Could not find a PeTTa runner.” Neither petta nor swipl was on PATH and no sibling PeTTa was installed. CI clones PeTTa, installs SWI-Prolog and Python deps, then calls this script. No native MeTTa assertions ran; this is an environment blocker, not a semantic test failure.
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/scripts/run-tests.sh#L111-L123
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/.github/workflows/MeTTa-CI.yml#L24-L55
+- iCog fluid smoke: `"$VENV/bin/python" attention/ImportanceDiffusionAgent/fluidDiffusion/tests/test_fluid_connection.py` → exit 0, “fluid connection checks passed”; eight checks including advection mass/nonnegativity and AF-to-fluid total STI conservation (diagnostics mass_error=0). This is the Python fluid path, not CAIRN's classical ECAN cycle or the native bank/rent suite.
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/attention/ImportanceDiffusionAgent/fluidDiffusion/tests/test_fluid_connection.py#L142-L198
+- iCog Synapse: `"$VENV/bin/python" -m unittest discover -s synapse/test -v` → exit 0, 20 passed (community detection and topology metrics).
+  https://github.com/iCog-Labs-Dev/metta-attention/tree/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/synapse/test
+- CAIRN: `PYTHONPATH=bridge "$VENV/bin/python" -m unittest test_link_fund test_pln_encoding -v` → exit 0, 26 passed (pricing/accounting, priced focus, scenario generation and encoding). No CAIRN PeTTa/PLN experiment run. Its full structural pipeline also expects kg.metta or kg.qlf, absent from the clean iCog clone; upstream run.sh documents the release asset and graph-generation path. The Python passes do not establish cross-repo MeTTa compatibility or any superiority of an experiment arm.
+  https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/test_link_fund.py
+  https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/bridge/test_pln_encoding.py
+  https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/setup.sh#L15-L55
+  https://github.com/trueagi-io/CAIRN/blob/36fd7f1b9435c2030acb16ed6de0744379ca2b72/setup.sh#L84-L96
+  https://github.com/iCog-Labs-Dev/metta-attention/blob/d3a3c0e369df052e31992fcdbafdec4a42d1a3ad/run.sh#L8-L33

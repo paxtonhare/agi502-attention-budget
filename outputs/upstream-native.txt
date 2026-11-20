@@ -1,0 +1,67 @@
+Follow-up native iCog test after provisioning SWI-Prolog 10.0.1 and PeTTa ee5cacb6a6ecdd554a1c773aaf47e9a0f8a5af0f.
+$ PATH=/tmp/attention-swipl/bin:$PATH PETTA_RUNNER="sh /tmp/attention-petta/run.sh" bash scripts/run-tests.sh
+
+=== Test Runner ===
+Repo root    : /tmp/agi502-upstream.WQ6x0S/metta-attention
+PeTTa runner : sh /tmp/attention-petta/run.sh
+Timeout      : 180 seconds
+
+=== Skipped Known Excluded Tests ===
+skipped: attention/ForgettingAgent/tests/ForgettingAgent-test.metta
+
+=== Attention Bank Tests ===
+Test 1: attention-bank/attention-value/tests/getter-and-setter-test.metta
+passed
+Test 2: attention-bank/bank/attentional-focus/tests/attentional-focus-test.metta
+passed
+Test 3: attention-bank/bank/importance-index/tests/importance-index-test.metta
+passed
+Test 4: attention-bank/bank/stochastic-importance-diffusion/tests/merge-bin-test.metta
+passed
+Test 5: attention-bank/bank/stochastic-importance-diffusion/tests/stochastic-importance-diffusion-test.metta
+passed
+Test 6: attention-bank/bank/tests/attention-bank-test.metta
+passed
+Test 7: attention-bank/utilities/tests/helper-functions-test.metta
+passed
+
+=== Agent Tests ===
+Test 8: attention/HebbianCreationAgent/HebbianCreationAgentTest/HebbianCreationAgentC++-test.metta
+passed
+Test 9: attention/HebbianUpdatingAgent/tests/HebbianUpdatingAgent-test.metta
+passed
+Test 10: attention/ImportanceDiffusionAgent/AFImportanceDiffusionAgent/tests/AFImportanceDiffusion-test.metta
+passed
+Test 11: attention/ImportanceDiffusionAgent/ImportanceDiffusionBase/tests/ImportanceDiffusionBase-test.metta
+passed
+Test 12: attention/ImportanceDiffusionAgent/WAImportanceDiffusionAgent/tests/WAImportanceDiffusion-test.metta
+passed
+Test 13: attention/RentCollectionAgent/AFRentCollectionAgent/tests/AFRentCollectionAgent-deterministic-timer-test.metta
+passed
+Test 14: attention/RentCollectionAgent/AFRentCollectionAgent/tests/AFRentCollectionAgent-economic-parameters-test.metta
+passed
+Test 15: attention/RentCollectionAgent/AFRentCollectionAgent/tests/AFRentCollectionAgent-fund-frequency-elapsed-test.metta
+passed
+Test 16: attention/RentCollectionAgent/AFRentCollectionAgent/tests/AFRentCollectionAgent-liquidity-equation-test.metta
+passed
+Test 17: attention/RentCollectionAgent/AFRentCollectionAgent/tests/AFRentCollectionAgent-test.metta
+passed
+Test 18: attention/RentCollectionAgent/AFRentCollectionAgent/tests/AFRentCollectionAgent2-test.metta
+passed
+Test 19: attention/RentCollectionAgent/RentCollectionBaseAgent/tests/RentCollectionBaseAgent-test.metta
+passed
+Test 20: attention/RentCollectionAgent/WARentCollectionAgent/tests/WARentCollectionAgent-test.metta
+passed
+Test 21: attention/test/agents-serial-test.metta
+passed
+Test 22: attention/test/agents-test.metta
+passed
+Test 23: attention/test/dynamicity-test.metta
+passed
+
+=== Test Summary ===
+23 file(s) tested.
+23 passed.
+1 skipped.
+0 failed.
+All requested tests passed.
