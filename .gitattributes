@@ -1,0 +1,4 @@
+# Raw instrument logs are large generated CSVs. Keep them downloadable, not inline in diffs.
+results/raw-*.csv -diff
+# Python's CSV writer emits CRLF record separators.
+results/summary.csv whitespace=cr-at-eol

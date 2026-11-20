@@ -1,0 +1,71 @@
+Upstream PeTTa auxiliary run (same shared MeTTa sources; no MORK or FAISS).
+PeTTa ee5cacb6a6ecdd554a1c773aaf47e9a0f8a5af0f (2026-10-28) Merge pull request #268 from NatnaelTigistu/fix/py-call-callable-objects
+SWI-Prolog version 10.0.1 for x86_64-linux
+Adapter, prepended to temporary copy only:
+(= (assertEqual $actual $expected) (test $actual $expected))
+
+$ sh /tmp/attention-petta/run.sh /tmp/attention-shared-raw.metta --silent
+(assertEqual (f0 r0) (f0 r0))
+(assertEqual (f1 r1 r2) (f1 r1 r2))
+(assertEqual () ())
+(assertEqual () ())
+(assertEqual () ())
+(assertEqual (f2 r3) (f2 r3))
+(assertEqual 20.0 20.0)
+(assertEqual 17.0 17.0)
+(assertEqual 3 3)
+(assertEqual 2 2)
+(assertEqual 1.0 1.0)
+(assertEqual 3.0 3.0)
+(assertEqual 1.625 1.625)
+(assertEqual 1.5 1.5)
+(assertEqual true true)
+(assertEqual false false)
+Exit: 0 (assertEqual expressions were residual values, not checks)
+
+$ sh /tmp/attention-petta/run.sh /tmp/attention-shared-compat.metta --silent
+is (f0 r0), should (f0 r0). ✅
+is (f1 r1 r2), should (f1 r1 r2). ✅
+is (), should (). ✅
+is (), should (). ✅
+is (), should (). ✅
+is (f2 r3), should (f2 r3). ✅
+is 20.0, should 20.0. ✅
+is 17.0, should 17.0. ✅
+is 3, should 3. ✅
+is 2, should 2. ✅
+is 1.0, should 1.0. ✅
+is 3.0, should 3.0. ✅
+is 1.625, should 1.625. ✅
+is 1.5, should 1.5. ✅
+is true, should true. ✅
+is false, should false. ✅
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+Exit: 0
+
+$ sh /tmp/attention-petta/run.sh /tmp/attention-bad-compat.metta --silent
+is 2, should 99. ❌
+Exit: 1
+
+Generated replay (same temporary adapter + src/chainer.metta + results/replay.metta):
+$ sh /tmp/attention-petta/run.sh /tmp/attention-petta-replay.metta --silent
+is (), should (). ✅
+is (), should (). ✅
+Passing checks: 288
+Failing checks: 0
+Exit: 0

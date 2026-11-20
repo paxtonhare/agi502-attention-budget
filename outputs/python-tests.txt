@@ -1,0 +1,10 @@
+test_all_pickers_respect_budget_and_reset (test_experiment.ExperimentTests.test_all_pickers_respect_budget_and_reset) ... ok
+test_every_planted_proof_is_unique_and_necessary (test_experiment.ExperimentTests.test_every_planted_proof_is_unique_and_necessary) ... ok
+test_feedback_and_snapshot_diffusion (test_experiment.ExperimentTests.test_feedback_and_snapshot_diffusion) ... ok
+test_harness_prefers_recent_uses_but_not_over_an_extra_keyword (test_experiment.ExperimentTests.test_harness_prefers_recent_uses_but_not_over_an_extra_keyword) ... ok
+test_stream_drift_and_matching (test_experiment.ExperimentTests.test_stream_drift_and_matching) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.433s
+
+OK

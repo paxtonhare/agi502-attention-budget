@@ -1,0 +1,2 @@
+Rows: 42000; unique focus/goal/subject cases: 23959; matched exact chain2/chain3 answers in 43.68s
+Cases by outcome: none=18648, direct=4912, two rules=399

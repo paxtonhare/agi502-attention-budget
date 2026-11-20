@@ -1,0 +1,61 @@
+Second MeTTa implementation investigation — 2026-11-20 UTC
+
+Identification and provenance
+- No syllabus link, course package pin, or uniquely identifying reference to
+  “PyMeTTa” was present in the initial project files. The public search below
+  identifies a literal, working match, not a verified course-specific pin.
+- PyPI JSON (https://pypi.org/pypi/pymetta/json) returned HTTP 200. Version
+  0.9.4, published 2026-09-30, points to https://github.com/MesTTo/MeTTa;
+  https://github.com/MesTTo/PyMeTTa documents the Python interface and CLI.
+  MesTTo/MeTTa credits upstream PeTTa as its starting point. The wheel embeds
+  that project's own Prolog MeTTa engine and patched SWI-Prolog with Janus;
+  it does not wrap the Rust Hyperon interpreter (primary experiment: 0.2.10).
+  “Python implementation” therefore refers to the Python-facing system, not
+  a pure-Python evaluator.
+- `gh search repos PyMeTTa` also found surafelfikru/PyMetta, described there as
+  a proposed Python-to-MeTTa transpiler, not a standalone MeTTa evaluator.
+  Searches for a public AGI 502/MeTTa course repository did not establish a
+  link to either implementation. GitHub code search was later rate-limited.
+- Selected the literal PyMeTTa distribution for unchanged-source comparison;
+  ran trueagi-io/PeTTa too, at ee5cacb6a6ecdd554a1c773aaf47e9a0f8a5af0f.
+  PyMeTTa and PeTTa share lineage, so these are not two independent checks
+  against Hyperon.
+
+Installation and environment
+- Host: Linux x86_64 / Debian bookworm, system Python 3.11.2. PyMeTTa requires
+  Python >=3.12; querying PyPI with pip under Python 3.11 found no compatible
+  distribution. Using uv 0.13.9, installed managed CPython 3.12.16, created an
+  isolated venv and installed the binary wheel with `uv pip install --python
+  /tmp/attention-pymetta/bin/python --only-binary :all: PyMeTTa==0.9.4`.
+- Wheel: pymetta-0.9.4-cp312-cp312-manylinux_2_28_x86_64.whl
+  PyPI sha256: 17e659b2f7d3d2224c5f3e64990513f75a4ebd6874c6ef37219fe4ae3bbdbafc
+  Bundled binary reports SWI-Prolog 10.1.14. Python dependencies resolved:
+  annotated-types 0.8.0, docstring_parser 0.18.0. No separate SWI installation
+  or Hyperon package was needed in this venv.
+- PeTTa CLI needs SWI-Prolog >=9.3.x. Bookworm's apt candidate was 9.0.4,
+  so built SWI-Prolog V10.0.1 from https://github.com/SWI-Prolog/swipl-devel
+  (e58621a91ab7dd530e1e8185ed518f63d851c414), with CMake, Ninja and GCC 12.2.0;
+  installed under /tmp/attention-swipl, including SWI's `library(janus)`.
+  Initial build setup had a stale `packages/readline` submodule name and
+  was missing clib's `packages/sgml` dependency. The successful checkout
+  initialized packages/{clib,pcre,swipy,utf8proc,sgml,http,zlib,ssl,plunit,json,pengines,archive}.
+  Janus successfully called Python 3.11.2. No MORK or FAISS was installed.
+  Under POSIX locale PeTTa emitted a multibyte warning and escaped check
+  marks; `LC_ALL=C.UTF-8` removed this. See second-interpreter-petta.txt.
+
+Behavior and scope
+- PyMeTTa ran the unchanged shared fixtures and generated replay. The CLI
+  produces Boolean True for each successful assertion. A false assertion
+  reported missing/excess answers and exited 1. The wrapper validates
+  Boolean True in JSON-wire output and that the exact number of assertion
+  results was observed; it does not depend on exit status alone.
+- Raw PeTTa forwards unknown `assertEqual` forms as unevaluated data and
+  exits zero, so that run alone cannot count as passing. A temporary one-line
+  adapter to PeTTa's `test` checked each fixture and each generated replay
+  case. The replay supplies collapsed lists, so zero or multiple matches
+  cannot silently skip an assertion. This adapter is not offered as a general
+  semantic equivalent of Hyperon's answer-bag assertions.
+- The static fixtures validate the project MeTTa chainer and scalar economy
+  formulas. The replay reuses recorded selections, not a second execution of
+  the Python ranking/attention loops. It establishes exact proof agreement
+  on the tested inputs, not runtime or dialect equivalence in general.

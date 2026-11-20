@@ -1,0 +1,86 @@
+$ PYMETTA_PYTHON=/tmp/attention-pymetta/bin/python scripts/second_interpreter.sh results/replay.metta
+PyMeTTa 0.9.4
+Python 3.12.16
+chainer: 6/6 assertions passed
+economy: 10/10 assertions passed
+replay: 288/288 assertions passed
+
+real	0m7.378s
+user	0m6.949s
+sys	0m0.478s
+Exit: 0
+1faba83d882d7d13ce038d7d36118894bd6a4007b26990a6793764c7a5bd4e82  src/chainer.metta
+18514848ff648556d1f4ceeb2d26e9e9be55f254be038ec812e17152fb38f175  tests/chainer.metta
+6f584e5dee949a20b0cfa68a4315589ded4e02d136f7b231e71f21feefa19cc3  src/economy.metta
+d90d7bcdb725dcd8fa5f967561647707a2f16d50ae9bbfa7d4aa0181f97b6141  tests/economy.metta
+f9bd32db7f6aee751f8ad55e7bf775b1ad4090f623397e07eddea908121b8ed3  results/replay.metta
+
+Negative control: !(assertEqual (+ 1 1) 99)
+PyMeTTa 0.9.4
+Python 3.12.16
+chainer: 6/6 assertions passed
+economy: 10/10 assertions passed
+ERROR: [Thread main] MeTTa assertion failed: (assertEqual (+ 1 1) 99)
+ERROR: [Thread main]   missing: (99)
+ERROR: [Thread main]   excess: (2)
+{"error":"assertEqual: MeTTa assertion failed: (assertEqual (+ 1 1) 99)\n  missing: (99)\n  excess: (2) (MeTTa assertion failed)","line":null}
+replay: observed 0 passing assertions, expected 3
+Exit: 1
+
+Full proof replay via PyMeTTa Python API (not timed as an experiment arm):
+Initial probe used render(atom), which raised TypeError; changed to format(atom, "sexp").
+$ /tmp/attention-pymetta/bin/python /tmp/attention-full-replay.py
+Rows: 42000; unique focus/goal/subject cases: 23959; matched exact chain2/chain3 answers in 43.15s
+Cases by outcome: none=18648, direct=4912, two rules=399
+Exit: 0
+7a39116d0cb04d2389aaae3cc725d0010038f4af74975a0a96531b7916359f98  results/kb.metta
+7a875898d6a01f136d3674403800270e6fd3a086983bbdac90f7e1f687c47a8f  results/raw-11.csv
+7682ec493e327b102dfde720cb686504c6179c3db00d842b157009cc1c8495ac  results/raw-23.csv
+de937f1ac77afea5bade3d58b0658bc4ba18f25c83f793f1774f638f84bd6997  results/raw-37.csv
+62aafeb7befd96a0dd61e2f6ff4eb760962f0bd5d51b079d36f98fac526da3ea  results/raw-47.csv
+914599d2c603e6fca87accacc807408c8a16d51633e8127568fe372567a2f696  results/raw-59.csv
+
+Full proof replay script used for the command above:
+import csv
+from collections import Counter
+from pathlib import Path
+from time import perf_counter
+from metta import MeTTa, parse
+
+root = Path.cwd()
+results = root / 'results'
+chainer = (root / 'src/chainer.metta').read_text()
+kb = {line.split()[1]: parse(line) for line in (results / 'kb.metta').read_text().splitlines()}
+cases = {}
+rows = 0
+for data in sorted(results.glob('raw-*.csv')):
+    with data.open(newline='') as f:
+        for r in csv.DictReader(f):
+            key = (tuple(r['focus'].split()), r['goal'], r['subject'])
+            expected = tuple(r['proof'].split())
+            if cases.setdefault(key, expected) != expected:
+                raise ValueError(f'Conflicting recorded proofs: {key}')
+            rows += 1
+
+m = MeTTa()
+m.run(chainer)
+prev = set()
+counts = Counter()
+start = perf_counter()
+for (focus, goal, subject), proof in cases.items():
+    chosen = set(focus)
+    removed = tuple(kb[i] for i in sorted(prev - chosen))
+    if removed and m.remove(*removed) != (True if len(removed) == 1 else len(removed)):
+        raise AssertionError(f'Failed to remove {removed}')
+    added = tuple(kb[i] for i in sorted(chosen - prev))
+    if added:
+        m.add(*added)
+    prev = chosen
+    answer_sets = m.run(f'!(chain2 {goal} {subject})\n!(chain3 {goal} {subject})')
+    actual = [[format(term, 'sexp') for term in group] for group in answer_sets]
+    expected = [[f'({" ".join(proof)})'] if len(proof) == n else [] for n in (2, 3)]
+    if actual != expected:
+        raise AssertionError((focus, goal, subject, actual, expected))
+    counts[len(proof)] += 1
+print(f'Rows: {rows}; unique focus/goal/subject cases: {len(cases)}; matched exact chain2/chain3 answers in {perf_counter() - start:.2f}s')
+print(f'Cases by outcome: none={counts[0]}, direct={counts[2]}, two rules={counts[3]}')
