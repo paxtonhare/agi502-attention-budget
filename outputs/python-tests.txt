@@ -3,8 +3,11 @@ test_every_planted_proof_is_unique_and_necessary (test_experiment.ExperimentTest
 test_feedback_and_snapshot_diffusion (test_experiment.ExperimentTests.test_feedback_and_snapshot_diffusion) ... ok
 test_harness_prefers_recent_uses_but_not_over_an_extra_keyword (test_experiment.ExperimentTests.test_harness_prefers_recent_uses_but_not_over_an_extra_keyword) ... ok
 test_stream_drift_and_matching (test_experiment.ExperimentTests.test_stream_drift_and_matching) ... ok
+test_cold_start_stimulates_the_harness_top_k (test_harness_ecan.HarnessEcanTests.test_cold_start_stimulates_the_harness_top_k) ... ok
+test_no_feedback_ignores_proofs_in_economy_and_retrieval (test_harness_ecan.HarnessEcanTests.test_no_feedback_ignores_proofs_in_economy_and_retrieval) ... ok
+test_nominations_use_focus_exposure_but_sti_selects_the_focus (test_harness_ecan.HarnessEcanTests.test_nominations_use_focus_exposure_but_sti_selects_the_focus) ... ok
 
 ----------------------------------------------------------------------
-Ran 5 tests in 0.433s
+Ran 8 tests in 0.310s
 
 OK

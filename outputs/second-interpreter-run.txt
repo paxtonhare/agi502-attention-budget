@@ -2,4 +2,4 @@ PyMeTTa 0.9.4
 Python 3.12.16
 chainer: 6/6 assertions passed
 economy: 10/10 assertions passed
-replay: 288/288 assertions passed
+replay: 384/384 assertions passed

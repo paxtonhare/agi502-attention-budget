@@ -11,7 +11,16 @@ from src.design import BUDGETS, SEEDS, TOPICS
 from src.pickers import ARMS
 from src.sweep import RESULTS
 
-LABELS = ("ECAN", "Harness", "Random", "ECAN no feedback", "ECAN no stimulus", "ECAN neither")
+LABELS = {
+    "ecan": "ECAN",
+    "harness": "Harness",
+    "random": "Random",
+    "ecan_no_feedback": "ECAN no feedback",
+    "ecan_no_stimulus": "ECAN no stimulus",
+    "ecan_neither": "ECAN neither",
+    "harness_ecan": "Harness ECAN",
+    "harness_ecan_nofeedback": "Harness ECAN no feedback",
+}
 
 
 def report():
@@ -36,7 +45,7 @@ def report():
                     metrics[arm, k, block] = mean(acc), stdev(acc)
                     writer.writerow((arm, k, block, len(acc), f"{mean(acc):.6f}", f"{stdev(acc):.6f}",
                                      f"{mean(runtime):.6f}"))
-    print("K | " + " | ".join(LABELS))
+    print("K | " + " | ".join(LABELS[arm] for arm in ARMS))
     for k in BUDGETS:
         print(f"{k} | " + " | ".join(f"{metrics[arm, k, 'all'][0]:.1%}" for arm in ARMS))
     plot(metrics, False)
@@ -46,12 +55,12 @@ def report():
 def plot(metrics, drift):
     fig, ax = plt.subplots(figsize=(9, 5), layout="constrained")
     xs = list(range(len(TOPICS))) if drift else BUDGETS
-    for i, (arm, label) in enumerate(zip(ARMS, LABELS)):
+    for i, arm in enumerate(ARMS):
         ys, errors = zip(*(metrics[arm, BUDGETS[0], x] if drift else metrics[arm, x, "all"] for x in xs))
-        jitter = (i - 2.5) * (0.042 if drift else 0.42)
+        jitter = (i - (len(ARMS) - 1) / 2) * (0.042 if drift else 0.42)
         ax.errorbar([x + jitter for x in xs], [100 * y for y in ys],
-                    yerr=[100 * error for error in errors], label=label, marker="o",
-                    linestyle="--" if i >= 4 else "-", capsize=2)
+                    yerr=[100 * error for error in errors], label=LABELS[arm], marker="o",
+                    linestyle="--" if "no" in arm or arm == "ecan_neither" else "-", capsize=2)
     ax.set_ylabel("Questions answered correctly (%)")
     ax.set_ylim(bottom=0)
     ax.grid(axis="y", alpha=0.25)
