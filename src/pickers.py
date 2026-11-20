@@ -3,8 +3,11 @@ from collections import Counter, defaultdict
 from itertools import permutations
 from random import Random
 
+from src.harness import HARNESS_ECAN_ARMS, KEYWORD_STIMULUS, harness_rank, rank, stimulate_from_harness
+
 ARMS = (
     "ecan", "harness", "random", "ecan_no_feedback", "ecan_no_stimulus", "ecan_neither",
+    *HARNESS_ECAN_ARMS,
 )
 
 
@@ -24,10 +27,6 @@ def overlap(index, goal, subject):
     return Counter(i for word in tokens(goal, subject) for i in index.get(word, ()))
 
 
-def recency(now, last):
-    return 0.0 if last is None else 2.0 ** (1 + last - now)
-
-
 class Picker:
     def __init__(self, arm, seed, size):
         self.arm = arm
@@ -42,22 +41,22 @@ class Picker:
         if self.arm == "random":
             return self.rng.sample(self.ids, k)
         if self.arm == "harness":
-            scores = [hits[i] + (0.5 * recency(now, self.used.get(i))
-                                 + 0.25 * recency(now, self.seen.get(i))) for i in self.ids]
-        else:
-            if self.arm in ("ecan", "ecan_no_feedback"):
-                for i, count in hits.items():
-                    self.sti[i] += 0.25 * count
-            scores = self.sti
-        return sorted(self.ids, key=lambda i: (-scores[i], self.priority[i]))[:k]
+            return harness_rank(self.ids, hits, now, self.seen, self.used, self.priority, k)
+        if self.arm in HARNESS_ECAN_ARMS:
+            stimulate_from_harness(self.sti, self.ids, hits, now, self.seen, self.priority, k)
+        elif self.arm in ("ecan", "ecan_no_feedback"):
+            for i, count in hits.items():
+                self.sti[i] += KEYWORD_STIMULUS * count
+        return rank(self.ids, self.sti, self.priority, k)
 
     def update(self, chosen, proof, now):
-        if self.arm == "harness":
+        if self.arm == "harness" or self.arm in HARNESS_ECAN_ARMS:
             self.seen.update(dict.fromkeys(chosen, now))
+        if self.arm == "harness":
             self.used.update(dict.fromkeys(proof, now))
         elif self.arm != "random":
             self.sti = [0.85 * value for value in self.sti]
-            if self.arm in ("ecan", "ecan_no_stimulus"):
+            if self.arm in ("ecan", "ecan_no_stimulus", "harness_ecan"):
                 for i in proof:
                     self.sti[i] += 3.0
                 for i, j in permutations(dict.fromkeys(proof), 2):
