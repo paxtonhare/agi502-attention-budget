@@ -2,6 +2,10 @@
 
 Can an ECAN-style picker give a MeTTa reasoner better premises than lexical retrieval plus recency? See the [fixed protocol](PLAN.md) and [results](RESULTS.md).
 
+This repository contains the experiment for Paxton Hare's AGI 502 final paper, *Paying Attention on a Budget: An Attention Economy Lost to a Keyword Rule* (California Institute for Human Science, 2026). The paper cites commit [`718e4c4`](https://github.com/paxtonhare/agi502-attention-budget/commit/718e4c4).
+
+**License:** MIT. See [LICENSE](LICENSE).
+
 ## Reproduce
 
 Reference platform: Linux x86-64, CPython 3.11.2 for Hyperon and plots, CPython 3.12.16 for PyMeTTa. Create the environments once:
